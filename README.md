@@ -7,7 +7,7 @@ Este proyecto utiliza código basado en el repositorio de Didstopia para la admi
 
 ### Licencia del Proyecto
 
-Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [`LICENSE`](https://github.com/GNR092/docker-base-images/blob/master/LICENSE.md) para más detalles.
+Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [`LICENSE`](https://github.com/GNR092/docker-base-images/blob/main/LICENCE.md) para más detalles.
 
 ### Atribución
 
