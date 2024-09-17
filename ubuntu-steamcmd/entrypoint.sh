@@ -8,7 +8,7 @@
 # Licencia MIT - Ver archivo LICENSE para detalles.
 
 # Habilitar manejo de errores y debugging (opcional)
-set -ex
+set -e
 
 # Verificar que las variables de entorno necesarias estén definidas
 : "${TZ:?Variable TZ no definida}"
