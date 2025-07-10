@@ -55,6 +55,8 @@ RUN apt-get update \
         libstdc++6 \
         libsdl2-2.0-0:i386 \
         libcurl4-openssl-dev:i386 \
+        libgdiplus \
+        libc6-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/tmp/* /tmp/dumps /tmp/*
 
