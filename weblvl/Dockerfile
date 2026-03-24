@@ -29,6 +29,7 @@ RUN apk update --no-cache && \
         autoconf \
         libc-dev \
         pkgconf \
+        su-exec \
         sqlite-dev \
         libxml2-dev \
     && rm -rf /var/cache/apk/*
@@ -37,19 +38,21 @@ RUN apk update --no-cache && \
 # Using docker-php-ext-configure for extensions requiring special flags
 # Using docker-php-ext-install for basic extensions
 # Using php-extension-installer for more complex extensions if needed, but for these, direct install is fine.
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp && \
-    docker-php-ext-install -j$(nproc) \
-        pdo_mysql \
-        mbstring \
-        exif \
-        pcntl \
-        bcmath \
-        gd \
-        zip \
-        intl \
-        gmp \
-        posix && \
-    docker-php-ext-enable opcache
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp && \                                                                                                                         
+      docker-php-ext-install -j$(nproc) \                                                                                                                                                                
+          pdo_mysql \                                                                                                                                                                                    
+          mbstring \
+          exif \                                                                                                                                                                                         
+          pcntl \                                                                                                                                                                                      
+          bcmath \
+          gd \
+          zip \
+          intl \
+          gmp \
+          posix && \
+      docker-php-ext-enable opcache && \                                                                                                                                                                 
+      pecl install redis && \
+      docker-php-ext-enable redis
 # Copy Composer binary from builder stage
 COPY --from=composer_builder /usr/bin/composer /usr/bin/composer
 
