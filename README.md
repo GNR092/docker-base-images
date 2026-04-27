@@ -1,3 +1,31 @@
+## Imágenes disponibles
+
+- `webmb/Dockerfile`: Imagen base para CodeIgniter con MariaDB/MySQL.
+- `webmb/Dockerfile.gspt`: Variante con soporte GhostPDL/Ghostscript para generación de PDF.
+- `webmb/Dockerfile.postgresql`: Variante PostgreSQL con soporte GhostPDL/Ghostscript.
+
+## Scripts de build (webmb)
+
+- `webmb/scripts/build-webmbgs.sh`: Build de imagen GhostPDL (`Dockerfile.gspt`).
+- `webmb/scripts/build-and-push-webmbgs.sh`: Build + push de imagen GhostPDL.
+- `webmb/scripts/build-webmb-postgresql.sh`: Build de imagen PostgreSQL con GhostPDL (`Dockerfile.postgresql`).
+
+### Uso rápido
+
+```bash
+cd webmb
+./scripts/build-webmbgs.sh
+./scripts/build-webmb-postgresql.sh
+```
+
+Se pueden sobreescribir variables en ambos scripts:
+
+- `IMAGE_NAME`
+- `IMAGE_TAG`
+- `GSPDL_VERSION`
+- `DOCKERFILE`
+- `CONTEXT_DIR`
+
 ## Créditos y Licencia
 
 Este proyecto utiliza código basado en el repositorio de Didstopia para la administración de servidores:

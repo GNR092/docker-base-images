@@ -1,5 +1,7 @@
 FROM php:8.3.8-fpm-alpine3.20
 
+ARG GSPDL_VERSION=10.07.0
+
 # 1. Dependencias del sistema para PostgreSQL y PHP
 RUN apk update && apk add --no-cache \
     postgresql-client \
@@ -19,7 +21,46 @@ RUN apk update && apk add --no-cache \
     icu-dev \
     freetype-dev
 
-# 2. Configurar e instalar extensiones de PHP (solo PostgreSQL)
+# 2. Instalar GhostPDL (sin entorno grafico)
+RUN apk add --no-cache --virtual .gspdl-build-deps \
+    curl \
+    make \
+    pkgconf \
+    python3 \
+    perl \
+    zlib-dev \
+    jpeg-dev \
+    libpng-dev \
+    tiff-dev \
+    freetype-dev \
+    lcms2-dev \
+    openjpeg-dev \
+    jbig2dec-dev \
+    && GSPDL_TAG="gs$(printf '%s' "$GSPDL_VERSION" | tr -d '.')" \
+    && GSPDL_URL="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/${GSPDL_TAG}/ghostpdl-${GSPDL_VERSION}.tar.gz" \
+    && echo "Downloading: ${GSPDL_URL}" \
+    && curl -fL "${GSPDL_URL}" -o /tmp/ghostpdl.tar.gz \
+    && mkdir -p /tmp/ghostpdl-src \
+    && tar -xzf /tmp/ghostpdl.tar.gz -C /tmp/ghostpdl-src --strip-components=1 \
+    && cd /tmp/ghostpdl-src \
+    && CFLAGS="-DDO_NOT_USE_SPRINTF=sprintf" ./configure --disable-gtk --without-x \
+    && make -j1 \
+    && make install \
+    && apk add --no-cache \
+    tiff \
+    lcms2 \
+    openjpeg \
+    jbig2dec \
+    zlib \
+    libjpeg-turbo \
+    libpng \
+    freetype \
+    && gs --version \
+    && cd / \
+    && rm -rf /tmp/ghostpdl.tar.gz /tmp/ghostpdl-src \
+    && apk del .gspdl-build-deps
+
+# 3. Configurar e instalar extensiones de PHP (solo PostgreSQL)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
     pgsql \
@@ -34,22 +75,13 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     intl \
     soap
 
-# 3. Composer
+# 4. Composer
 COPY --from=composer/composer:latest-bin /composer /usr/bin/composer
-
-# 4. Gestión de usuarios
-ARG PUID=1000
-ARG PGID=1000
-
-RUN deluser nobody || true \
-    && delgroup nobody || true \
-    && addgroup -g ${PGID} nobody \
-    && adduser -u ${PUID} -G nobody -s /bin/sh -D nobody
 
 WORKDIR /var/www/html
 
 # 5. Configuración y permisos
-RUN chown -R nobody:nobody /var/www/html/ \
+RUN chown -R www-data:www-data /var/www/html/ \
     && chmod -R 775 /var/www/html/
 
 COPY nginx.conf /etc/nginx/nginx.conf
@@ -58,10 +90,8 @@ COPY opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh \
-    && git config --global core.fileMode false \
-    && git config --global --add safe.directory /var/www/html \
     && mkdir -p /var/log/nginx \
-    && chown nobody:nobody /var/log/nginx
+    && chown www-data:www-data /var/log/nginx
 
 ENV APP_MODE=new
 EXPOSE 9000
