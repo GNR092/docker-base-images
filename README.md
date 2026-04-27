@@ -1,14 +1,47 @@
-## Imágenes disponibles
+## docker-base-images
 
-- `webmb/Dockerfile`: Imagen base para CodeIgniter con MariaDB/MySQL.
-- `webmb/Dockerfile.gspt`: Variante con soporte GhostPDL/Ghostscript para generación de PDF.
-- `webmb/Dockerfile.postgresql`: Variante PostgreSQL con soporte GhostPDL/Ghostscript.
+Repositorio con imágenes base Docker para entornos Alpine/Ubuntu, servidores SteamCMD y stacks PHP-FPM para aplicaciones web (Laravel/CodeIgniter).
+
+## Estructura principal
+
+- `alpine/`: imagen base Alpine con `gosu`, utilidades base y `entrypoint.sh`.
+- `alpine-3.20-gosu/`: imagen mínima Alpine 3.20 enfocada en `gosu`.
+- `alpine-steamcmd/`: imagen Alpine con SteamCMD y compatibilidad de librerías 32/64 bits.
+- `ubuntu-steamcmd/`: variante Ubuntu con SteamCMD, Node.js/npm y toolchain adicional.
+- `weblvl/`: imágenes PHP-FPM 8.3 para web (MySQL y PostgreSQL) con extensiones comunes + Redis.
+- `webmb/`: imágenes PHP-FPM 8.3 para CodeIgniter con variantes MySQL, PostgreSQL y soporte GhostPDL.
+
+## Dockerfiles relevantes
+
+- `alpine/Dockerfile`
+- `alpine-3.20-gosu/Dockerfile`
+- `alpine-steamcmd/Dockerfile`
+- `ubuntu-steamcmd/Dockerfile`
+- `weblvl/Dockerfile`
+- `weblvl/Dockerfile.pgsql`
+- `webmb/Dockerfile`
+- `webmb/Dockerfile.gspt`
+- `webmb/Dockerfile.postgresql`
+
+## Variantes webmb
+
+- `webmb/Dockerfile`: base MySQL/MariaDB.
+- `webmb/Dockerfile.gspt`: MySQL/MariaDB + GhostPDL/Ghostscript (`GSPDL_VERSION`, build sin X/GTK).
+- `webmb/Dockerfile.postgresql`: PostgreSQL + GhostPDL/Ghostscript.
 
 ## Scripts de build (webmb)
 
-- `webmb/scripts/build-webmbgs.sh`: Build de imagen GhostPDL (`Dockerfile.gspt`).
-- `webmb/scripts/build-and-push-webmbgs.sh`: Build + push de imagen GhostPDL.
-- `webmb/scripts/build-webmb-postgresql.sh`: Build de imagen PostgreSQL con GhostPDL (`Dockerfile.postgresql`).
+- `webmb/scripts/build-webmbgs.sh`: build de `Dockerfile.gspt`.
+- `webmb/scripts/build-and-push-webmbgs.sh`: build + push de variante GhostPDL.
+- `webmb/scripts/build-webmb-postgresql.sh`: build de `Dockerfile.postgresql`.
+
+### Variables soportadas por scripts
+
+- `IMAGE_NAME`
+- `IMAGE_TAG`
+- `GSPDL_VERSION`
+- `DOCKERFILE`
+- `CONTEXT_DIR`
 
 ### Uso rápido
 
@@ -18,13 +51,13 @@ cd webmb
 ./scripts/build-webmb-postgresql.sh
 ```
 
-Se pueden sobreescribir variables en ambos scripts:
+### Builds manuales (sin script)
 
-- `IMAGE_NAME`
-- `IMAGE_TAG`
-- `GSPDL_VERSION`
-- `DOCKERFILE`
-- `CONTEXT_DIR`
+```bash
+docker build -f webmb/Dockerfile -t gnr092/webmb:latest webmb
+docker build -f webmb/Dockerfile.gspt -t gnr092/webmbgs:latest webmb
+docker build -f webmb/Dockerfile.postgresql -t gnr092/webmb-postgresql:latest webmb
+```
 
 ## Créditos y Licencia
 
