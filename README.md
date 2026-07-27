@@ -1,49 +1,153 @@
-## docker-base-images
+# docker-base-images
 
-Repositorio con imágenes base Docker para entornos Alpine/Ubuntu, servidores SteamCMD y stacks PHP-FPM para aplicaciones web (Laravel/CodeIgniter).
+Imágenes base Docker para entornos Alpine/Ubuntu, servidores SteamCMD y stacks PHP-FPM para aplicaciones web (Laravel/CodeIgniter 4).
 
-## Estructura principal
+---
 
-- `alpine/`: imagen base Alpine con `gosu`, utilidades base y `entrypoint.sh`.
-- `alpine-3.20-gosu/`: imagen mínima Alpine 3.20 enfocada en `gosu`.
-- `alpine-steamcmd/`: imagen Alpine con SteamCMD y compatibilidad de librerías 32/64 bits.
-- `ubuntu-steamcmd/`: variante Ubuntu con SteamCMD, Node.js/npm y toolchain adicional.
-- `weblvl/`: imágenes PHP-FPM 8.3 para web (MySQL y PostgreSQL) con extensiones comunes + Redis.
-- `webmb/`: imágenes PHP-FPM 8.3 para CodeIgniter con variantes MySQL, PostgreSQL y soporte GhostPDL.
+## Estructura
 
-## Dockerfiles relevantes
+```
+├── alpine/                  # Alpine 3.20 + gosu + utilidades
+├── alpine-3.20-gosu/        # Alpine 3.20 + gosu (mínima)
+├── alpine-steamcmd/         # Alpine 3.20 + SteamCMD (multi-stage)
+├── ubuntu-steamcmd/         # Ubuntu 24.10 + Node 20 + SteamCMD
+├── weblvl/                  # PHP 8.3-FPM para Laravel (MySQL/PostgreSQL)
+└── webmb/                   # PHP 8.3-FPM para CI4 (MySQL/PostgreSQL + GhostPDL)
+```
 
-- `alpine/Dockerfile`
-- `alpine-3.20-gosu/Dockerfile`
-- `alpine-steamcmd/Dockerfile`
-- `ubuntu-steamcmd/Dockerfile`
-- `weblvl/Dockerfile`
-- `weblvl/Dockerfile.pgsql`
-- `webmb/Dockerfile`
-- `webmb/Dockerfile.gspt`
-- `webmb/Dockerfile.postgresql`
+---
 
-## Variantes webmb
+## Imágenes
 
-- `webmb/Dockerfile`: base MySQL/MariaDB.
-- `webmb/Dockerfile.gspt`: MySQL/MariaDB + GhostPDL/Ghostscript (`GSPDL_VERSION`, build sin X/GTK).
-- `webmb/Dockerfile.postgresql`: PostgreSQL + GhostPDL/Ghostscript.
+### alpine
 
-## Scripts de build (webmb)
+Imagen base Alpine con gosu para ejecución no-root dinámica.
 
-- `webmb/scripts/build-webmbgs.sh`: build de `Dockerfile.gspt`.
-- `webmb/scripts/build-and-push-webmbgs.sh`: build + push de variante GhostPDL.
-- `webmb/scripts/build-webmb-postgresql.sh`: build de `Dockerfile.postgresql`.
+| Atributo | Valor |
+|----------|-------|
+| Base | `alpine:3.20` |
+| Usuario | `gnr092` (UID/GID 1000) |
+| Entrypoint | `entrypoint.sh` con `PUID`, `PGID`, `CHOWN_DIRS`, `ENABLE_PASSWORDLESS_SUDO` |
+| Scripts | `build.sh`, `run.sh`, `push.sh` |
 
-### Variables soportadas por scripts
+```bash
+docker build -t __NAMESPACE__/base:alpine alpine/
+```
 
-- `IMAGE_NAME`
-- `IMAGE_TAG`
-- `GSPDL_VERSION`
-- `DOCKERFILE`
-- `CONTEXT_DIR`
+### alpine-3.20-gosu
 
-### Uso rápido
+Imagen mínima con solo gosu, sin usuario personalizado ni entrypoint.
+
+| Atributo | Valor |
+|----------|-------|
+| Base | `alpine:3.20` |
+| Gosu | 1.17 |
+| Uso | Base para imágenes que necesitan gosu pero no utilidades extras |
+
+```bash
+docker build -t __NAMESPACE__/base:alpine-gosu alpine-3.20-gosu/
+```
+
+### alpine-steamcmd
+
+Alpine con SteamCMD listo para servidores de juego.
+
+| Atributo | Valor |
+|----------|-------|
+| Base | `alpine:3.20` (multi-stage desde `cm2network/steamcmd`) |
+| Usuario | `gnr092` (UID/GID 1000) |
+| SteamCMD | Instalado y verificado + `steamclient.so` en `/usr/lib` |
+| Entrypoint | Mismo que `alpine/` (`PUID`, `PGID`, `CHOWN_DIRS`) |
+
+```bash
+docker build -t __NAMESPACE__/steamcmd:alpine alpine-steamcmd/
+```
+
+### ubuntu-steamcmd
+
+Ubuntu con SteamCMD, Node.js 20 y toolchain de desarrollo.
+
+| Atributo | Valor |
+|----------|-------|
+| Base | `ubuntu:24.10` |
+| Usuario | `docker` (UID 1001 / GID 999) |
+| Node.js | 20 LTS + npm |
+| SteamCMD | Instalado + symlinks para SDK32/SDK64 |
+| Entrypoint | Mismo patrón (`PUID`, `PGID`, `CHOWN_DIRS`) |
+
+```bash
+docker build -t __NAMESPACE__/steamcmd:ubuntu ubuntu-steamcmd/
+```
+
+### weblvl
+
+PHP-FPM para aplicaciones Laravel, con extensiones comunes y Redis.
+
+| Atributo | Valor |
+|----------|-------|
+| Base | `php:8.3.8-fpm-alpine3.20` (multi-stage con Composer) |
+| Extensiones | `pdo_mysql`, `mbstring`, `exif`, `pcntl`, `bcmath`, `gd`, `zip`, `intl`, `gmp`, `posix`, `opcache`, `redis` |
+| Entrypoint | `entrypoint.sh` con `PUID`/`PGID`, Composer, caches de Laravel |
+| Puertos | 9000 |
+
+**Variantes:**
+| Dockerfile | Base de datos |
+|------------|---------------|
+| `Dockerfile` | MySQL (`pdo_mysql`) |
+| `Dockerfile.pgsql` | PostgreSQL (`pdo_pgsql`, `pgsql`) |
+
+**Configuraciones incluidas:**
+- `nginx.conf.example` — Template Nginx con placeholders (`__DOMAIN__`, `__ROOT__`, `__PHP_SERVICE__`)
+- `zz-custom.conf` — Pool PHP-FPM con carga tardía (prefijo `zz-`)
+- `opcache-custom.ini` — OPcache con JIT para PHP 8.1+
+
+Ver `weblvl/README.md` para detalles de uso.
+
+```bash
+docker build -f weblvl/Dockerfile -t __NAMESPACE__/weblvl:latest weblvl/
+docker build -f weblvl/Dockerfile.pgsql -t __NAMESPACE__/weblvl-pgsql:latest weblvl/
+```
+
+### webmb
+
+PHP-FPM para CodeIgniter 4, con extensiones MySQL/PostgreSQL y GhostPDL.
+
+| Atributo | Valor |
+|----------|-------|
+| Base | `php:8.3.8-fpm-alpine3.20` |
+| Extensiones | `mysqli`, `pdo_mysql`, `mbstring`, `exif`, `pcntl`, `gd`, `opcache`, `zip`, `bcmath`, `intl`, `soap` |
+| Usuario | `nobody` (UID/GID configurable vía `PUID`/`PGID`) |
+| Puertos | 9000 |
+
+**Variantes:**
+| Dockerfile | DB | GhostPDL |
+|------------|----|----------|
+| `Dockerfile` | MySQL | No |
+| `Dockerfile.gspt` | MySQL | Sí (`gs --version`) |
+| `Dockerfile.postgresql` | PostgreSQL | Sí (`gs --version`) |
+
+**Scripts de build:**
+| Script | Acción |
+|--------|--------|
+| `scripts/build-webmbgs.sh` | Build `Dockerfile.gspt` |
+| `scripts/build-and-push-webmbgs.sh` | Build + push de GhostPDL |
+| `scripts/build-webmb-postgresql.sh` | Build `Dockerfile.postgresql` |
+
+**Variables de entorno para scripts:**
+| Variable | Default |
+|----------|---------|
+| `IMAGE_NAME` | `gnr092/webmbgs` |
+| `IMAGE_TAG` | `latest` |
+| `GSPDL_VERSION` | `10.07.0` |
+| `DOCKERFILE` | `Dockerfile.gspt` |
+| `CONTEXT_DIR` | `.` |
+
+**Configuraciones incluidas:**
+- `nginx.conf.example` — Template Nginx con CSP para CI4
+- `zz-custom.conf` — Pool PHP-FPM optimizado para CI4
+- `opcache-custom.ini` — OPcache con JIT
+
+Ver `webmb/README.md` para detalles.
 
 ```bash
 cd webmb
@@ -51,27 +155,31 @@ cd webmb
 ./scripts/build-webmb-postgresql.sh
 ```
 
-### Builds manuales (sin script)
-
+Build manual:
 ```bash
-docker build -f webmb/Dockerfile -t gnr092/webmb:latest webmb
-docker build -f webmb/Dockerfile.gspt -t gnr092/webmbgs:latest webmb
-docker build -f webmb/Dockerfile.postgresql -t gnr092/webmb-postgresql:latest webmb
+docker build -f webmb/Dockerfile -t __NAMESPACE__/webmb:latest webmb/
+docker build -f webmb/Dockerfile.gspt -t __NAMESPACE__/webmbgs:latest webmb/
+docker build -f webmb/Dockerfile.postgresql -t __NAMESPACE__/webmb-postgresql:latest webmb/
 ```
 
-## Créditos y Licencia
+---
 
-Este proyecto utiliza código basado en el repositorio de Didstopia para la administración de servidores:
+## Repositorio
 
-- **Repositorio original**: [Didstopia/docker-base-images](https://github.com/Didstopia/docker-base-images)
-- **Licencia del código original**: MIT
+| Atributo | Valor |
+|----------|-------|
+| Rama activa | `main` |
+| Remoto | `git@github.com:__NAMESPACE__/docker-base-images.git` |
+| Tags | Ninguno |
 
-### Licencia del Proyecto
+---
 
-Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [`LICENSE`](https://github.com/GNR092/docker-base-images/blob/main/LICENCE.md) para más detalles.
+## Atribución
 
-### Atribución
+Basado en [Didstopia/docker-base-images](https://github.com/Didstopia/docker-base-images) (MIT).
 
-El código del script se basa en el repositorio de Didstopia y ha sido modificado para adaptarse a las necesidades del proyecto actual.
+---
 
-Copyright (c) 2024 GNR092
+## Licencia
+
+MIT. Ver [`LICENCE.md`](LICENCE.md).
