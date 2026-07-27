@@ -54,9 +54,8 @@ WORKDIR /var/www/html
 RUN chown -R nobody:nobody /var/www/html/ \
     && chmod -R 775 /var/www/html/
 
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
-COPY opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+COPY zz-custom.conf /usr/local/etc/php-fpm.d/zz-custom.conf
+COPY opcache-custom.ini /usr/local/etc/php/conf.d/opcache-custom.ini
 COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh && \
