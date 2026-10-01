@@ -1,0 +1,58 @@
+# =============================================================================
+# Docker Ignore File for PHP 8.4-FPM Base Image
+# =============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+LICENSE*
+*.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+tests/
+test/
+*.test.php
+
+# Local development
+docker-compose.override.yml
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+vendor/
+node_modules/
+dist/
+build/
+
+# Cache
+.cache/
+.php-cs-fixer.cache
+.phpstan.cache
+
+# Composer
+composer.lock
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
