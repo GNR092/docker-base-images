@@ -32,6 +32,8 @@ RUN apk update --no-cache && \
         su-exec \
         sqlite-dev \
         libxml2-dev \
+        python3 \
+        py3-pip \
     && rm -rf /var/cache/apk/*
 
 # Install PHP extensions

@@ -1,0 +1,145 @@
+# =============================================================================
+# Stage 1: Builder - compile PHP extensions and install Python + deps
+# =============================================================================
+FROM php:8.3-fpm-bookworm AS builder
+
+# Install ALL dependencies (runtime + build) in one layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        # Runtime libraries
+        libzip4 \
+        libpng16-16 \
+        libjpeg62-turbo \
+        libwebp7 \
+        libfreetype6 \
+        libicu72 \
+        libgmp10 \
+        libonig5 \
+        git \
+        curl \
+        unzip \
+        bash \
+        sqlite3 \
+        libxml2 \
+        libpq5 \
+        python3 \
+        python3-pip \
+        # Build dependencies
+        libzip-dev \
+        libpng-dev \
+        libjpeg-dev \
+        libwebp-dev \
+        libfreetype-dev \
+        libicu-dev \
+        libgmp-dev \
+        libonig-dev \
+        make \
+        gcc \
+        g++ \
+        autoconf \
+        libc6-dev \
+        pkg-config \
+        libsqlite3-dev \
+        libxml2-dev \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Configure and install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp && \
+    docker-php-ext-install -j$(nproc) \
+        pdo_pgsql \
+        pgsql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+        intl \
+        gmp \
+        posix && \
+    docker-php-ext-enable opcache && \
+    pecl install redis && \
+    docker-php-ext-enable redis
+
+# Install Python dependencies (including Playwright)
+RUN pip install --no-cache-dir --break-system-packages \
+        playwright>=1.40 \
+        httpx>=0.25 \
+        python-dotenv>=1.0 \
+        openpyxl>=3.1 && \
+    playwright install chromium && \
+    playwright install-deps chromium
+
+# =============================================================================
+# Stage 2: Runtime - minimal image with compiled artifacts + Python deps
+# =============================================================================
+FROM php:8.3-fpm-bookworm AS runtime
+
+# Install ONLY runtime dependencies + Playwright runtime deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libzip4 \
+        libpng16-16 \
+        libjpeg62-turbo \
+        libwebp7 \
+        libfreetype6 \
+        libicu72 \
+        libgmp10 \
+        libonig5 \
+        git \
+        curl \
+        unzip \
+        bash \
+        sqlite3 \
+        libxml2 \
+        libpq5 \
+        python3 \
+        python3-pip \
+        # Playwright runtime dependencies
+        chromium \
+        libnss3 \
+        libatk-bridge2.0-0 \
+        libdrm2 \
+        libxkbcommon0 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxrandr2 \
+        libgbm1 \
+        libasound2 \
+        libatspi2.0-0 \
+        fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy compiled PHP extensions from builder
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=builder /usr/local/etc/php/conf.d/docker-php-ext-*.ini /usr/local/etc/php/conf.d/
+
+# Copy Composer binary
+COPY --from=builder /usr/bin/composer /usr/bin/composer
+
+# Copy Python runtime + packages + Playwright browsers
+# Nota fix-checador-sync-01 (solo-imagen, desviación de plan-checador-sync-02):
+# builder instala como root en /root/.cache, pero runtime corre como www-data con HOME=/tmp.
+# Se expone copia legible en /opt/ms-playwright + ENV para independizar de HOME.
+COPY --from=builder /usr/local/lib/python3.11/ /usr/local/lib/python3.11/
+COPY --from=builder /usr/bin/python3 /usr/bin/python3
+COPY --from=builder /usr/bin/pip3 /usr/bin/pip3
+COPY --from=builder /root/.cache/ms-playwright/ /root/.cache/ms-playwright/
+COPY --from=builder /root/.cache/ms-playwright/ /opt/ms-playwright/
+RUN chmod -R a+rX /opt/ms-playwright/ && mkdir -p /tmp/.cache/ms-playwright && chmod 777 /tmp/.cache/ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Expose port 9000 for PHP-FPM
+EXPOSE 9000
+
+# Set entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["php-fpm"]

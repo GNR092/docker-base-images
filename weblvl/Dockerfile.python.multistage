@@ -1,0 +1,121 @@
+# =============================================================================
+# Stage 1: Builder - compile PHP extensions and install Python
+# =============================================================================
+FROM php:8.3.8-fpm-alpine3.20 AS builder
+
+# Install ALL dependencies (runtime + build) in one layer
+RUN apk update --no-cache && \
+    apk add --no-cache \
+        # Runtime libraries (needed at build time for linking)
+        libzip \
+        libpng \
+        libjpeg-turbo \
+        libwebp \
+        freetype \
+        icu \
+        gmp \
+        oniguruma \
+        git \
+        curl \
+        unzip \
+        bash \
+        su-exec \
+        sqlite-libs \
+        libxml2 \
+        postgresql-libs \
+        python3 \
+        py3-pip \
+        # Build dependencies
+        libzip-dev \
+        libpng-dev \
+        jpeg-dev \
+        libwebp-dev \
+        freetype-dev \
+        icu-dev \
+        gmp-dev \
+        oniguruma-dev \
+        make \
+        gcc \
+        g++ \
+        autoconf \
+        libc-dev \
+        pkgconf \
+        sqlite-dev \
+        libxml2-dev \
+        postgresql-dev \
+    && rm -rf /var/cache/apk/*
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Configure and install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp && \
+    docker-php-ext-install -j$(nproc) \
+        pdo_pgsql \
+        pgsql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+        intl \
+        gmp \
+        posix && \
+    docker-php-ext-enable opcache && \
+    pecl install redis && \
+    docker-php-ext-enable redis
+
+# =============================================================================
+# Stage 2: Runtime - minimal image with only compiled artifacts
+# =============================================================================
+FROM php:8.3.8-fpm-alpine3.20 AS runtime
+
+# Install ONLY runtime dependencies
+RUN apk update --no-cache && \
+    apk add --no-cache \
+        libzip \
+        libpng \
+        libjpeg-turbo \
+        libwebp \
+        freetype \
+        icu \
+        gmp \
+        oniguruma \
+        git \
+        curl \
+        unzip \
+        bash \
+        su-exec \
+        sqlite-libs \
+        libxml2 \
+        postgresql-libs \
+        python3 \
+        py3-pip \
+    && rm -rf /var/cache/apk/*
+
+# Copy compiled PHP extensions from builder
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=builder /usr/local/etc/php/conf.d/docker-php-ext-*.ini /usr/local/etc/php/conf.d/
+
+# Copy Composer binary
+COPY --from=builder /usr/bin/composer /usr/bin/composer
+
+# Copy Python packages (pip, etc.) from builder
+COPY --from=builder /usr/lib/python3.12/ /usr/lib/python3.12/
+COPY --from=builder /usr/bin/python3 /usr/bin/python3
+COPY --from=builder /usr/bin/pip /usr/bin/pip
+COPY --from=builder /usr/bin/pip3 /usr/bin/pip3
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Expose port 9000 for PHP-FPM
+EXPOSE 9000
+
+# Set entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["php-fpm"]
