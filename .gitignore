@@ -24,3 +24,6 @@ Thumbs.db
 *.bak
 # Codesearch
 .codesearch.db
+
+# Memoria local del agente
+.memory/
