@@ -51,11 +51,11 @@ BUILD_ARGS+=(
 echo "Building with XDEBUG_VERSION=${XDEBUG_VERSION}..."
 docker build "${BUILD_ARGS[@]}" -f "${DOCKERFILE}" "${BUILD_CONTEXT}"
 
-# Verify image
+# Verify image (bypass entrypoint to avoid SIGPIPE from `| head`)
 echo "Verifying image..."
-docker run --rm "${FULL_IMAGE}:${VERSION}" php -v | head -1
-docker run --rm "${FULL_IMAGE}:${VERSION}" php-fpm -v | head -1
-docker run --rm "${FULL_IMAGE}:${VERSION}" php -m | grep -i xdebug || echo "Xdebug not loaded (expected when XDEBUG_MODE=off)"
+docker run --rm --entrypoint php "${FULL_IMAGE}:${VERSION}" -v | head -1
+docker run --rm --entrypoint php-fpm "${FULL_IMAGE}:${VERSION}" -v | head -1
+docker run --rm --entrypoint php "${FULL_IMAGE}:${VERSION}" -m | grep -i xdebug || echo "Xdebug not loaded (expected when XDEBUG_MODE=off)"
 
 # Push if not local-only
 if [[ "${3:-}" != "--no-push" ]]; then
