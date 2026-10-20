@@ -1,12 +1,12 @@
-FROM cm2network/steamcmd:latest AS builder
+FROM cm2network/steamcmd@sha256:45f6515d6c4dcde659c9ad6872bdbeacd1bf5c4e7f241829c4d2f28fb5eda581 AS builder
 USER root
 RUN mkdir -p /steamlib && \
     cp -r /usr/lib32/* /steamlib
-RUN find . -type f -name '[A-Z]*.so' -exec rm {} +
+RUN find /steamlib -type f -name '[A-Z]*.so' -delete
 #RUN ldd /home/steam/steamcmd/linux32/steamcmd | awk '/=>/ {print $3}' | xargs -I '{}' cp -v '{}' /steamlib
 
 # Imagen base de Alpine
-FROM alpine:3.20
+FROM alpine:3.22
 
 USER root
 
@@ -46,7 +46,6 @@ COPY --from=builder /steamlib/* /lib
 
 # Actualizar paquetes del sistema e instalar dependencias principales
 RUN apk update && \
-	apk --no-cache upgrade && \
     apk --no-cache add \
 		bash \
 		busybox-suid \
@@ -56,6 +55,7 @@ RUN apk update && \
         libgcc \
         libstdc++ \
 		ca-certificates \
+        musl-locales \
         sudo && \
 	update-ca-certificates 2>/dev/null || true && \
     rm -rf /var/lib/apt/lists/*
@@ -68,7 +68,7 @@ RUN addgroup -S -g 1000 gnr092 && \
 
 # Establecer variables de entorno predeterminadas
 ENV LANGUAGE=en_US.UTF-8
-ENV LANG=en_US.utf8ls
+ENV LANG=en_US.UTF-8
 ENV TERM=xterm
 ENV TZ=Etc/UTC
 ENV PGID=1000
@@ -76,16 +76,14 @@ ENV PUID=1000
 ENV CHOWN_DIRS="/app,/steamcmd"
 ENV ENABLE_PASSWORDLESS_SUDO="false"
 
-# Instalar compatibilidad con librerías de 32 bits
-RUN wget https://raw.githubusercontent.com/alpinelinux/alpine-chroot-install/v0.14.0/alpine-chroot-install \
-&& echo 'ccbf65f85cdc351851f8ad025bb3e65bae4d5b06  alpine-chroot-install' | sha1sum -c \
-|| exit 1
-
-
 USER gnr092
 WORKDIR /steamcmd
-RUN curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf - && \
-    ./steamcmd.sh +quit
+ARG STEAMCMD_SHA256=cebf0046bfd08cf45da6bc094ae47aa39ebf4155e5ede41373b579b8f1071e7c
+RUN curl -fsSL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" -o /tmp/steamcmd.tar.gz \
+    && echo "${STEAMCMD_SHA256}  /tmp/steamcmd.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/steamcmd.tar.gz \
+    && rm -f /tmp/steamcmd.tar.gz \
+    && ./steamcmd.sh +quit
 USER root
 RUN ln -s "/steamcmd/linux64/steamclient.so" "/usr/lib/steamclient.so"   
 WORKDIR /
