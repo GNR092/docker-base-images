@@ -103,9 +103,9 @@ fi
 cd /var/www/html
 
 # --- weblvl: dependencias Laravel ---
-if [ ! -d "vendor" ]; then
-    echo "Vendor directory not found. Running composer install..."
-    su-exec "${PUID}:${PGID}" composer install --no-dev --optimize-autoloader
+if [ ! -f "vendor/autoload.php" ] && [ -f "composer.json" ]; then
+    echo "vendor/autoload.php not found. Running composer install..."
+    su-exec "${PUID}:${PGID}" composer install --no-dev --optimize-autoloader --no-interaction
     echo "Composer install finished."
 fi
 

@@ -99,7 +99,7 @@ http {
         }
 
         # Bloquear carpetas sensibles de Laravel
-        location ~ ^/(vendor|storage|bootstrap/cache) {
+        location ~ ^/(vendor|bootstrap/cache) {
             deny all;
         }
     }

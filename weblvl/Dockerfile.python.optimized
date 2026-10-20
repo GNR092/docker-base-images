@@ -13,7 +13,7 @@
 #     --add-host=host.docker.internal:host-gateway \
 #     gnr092/weblvl:py-xdebug php -m | grep -i xdebug
 # =============================================================================
-ARG BASE_IMAGE=gnr092/base-php8.4-fpm-xdebug:latest
+ARG BASE_IMAGE=gnr092/base-php8.4-fpm-xdebug:8.4-xdebug3.4-alpine3.22
 FROM ${BASE_IMAGE}
 
 USER root

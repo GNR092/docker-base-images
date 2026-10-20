@@ -1,15 +1,5 @@
 #!/bin/sh
-
-# Función para apagar PHP-FPM de forma elegante
-_term() {
-  echo "Caught SIGTERM signal! Shutting down PHP-FPM..."
-  kill -QUIT "$child_pid"
-  wait "$child_pid"
-  exit 0
-}
-
-# Atrapar SIGTERM
-trap _term SIGTERM
+set -e
 
 # UID/GID dinámicos con valores por defecto
 PUID=${PUID:-1000}
@@ -34,9 +24,9 @@ fi
 cd /var/www/html
 
 # 1. Validar Dependencias
-if [ ! -d "vendor" ]; then
-    echo "Vendor directory not found. Running composer install..."
-    su-exec "${PUID}:${PGID}" composer install --no-dev --optimize-autoloader
+if [ ! -f "vendor/autoload.php" ] && [ -f "composer.json" ]; then
+    echo "vendor/autoload.php not found. Running composer install..."
+    su-exec "${PUID}:${PGID}" composer install --no-dev --optimize-autoloader --no-interaction
     echo "Composer install finished."
 fi
 
@@ -57,5 +47,5 @@ if [ -f "artisan" ]; then
 fi
 
 # 4. Ejecutar PHP-FPM (corre como root y hace drop a www-data según php-fpm.conf)
-echo "Starting PHP-FPM..."
-exec php-fpm
+echo "Starting command: $*"
+exec "$@"

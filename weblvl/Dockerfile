@@ -1,8 +1,8 @@
 # Stage 1: Builder - for Composer installation
-FROM composer:latest AS composer_builder
+FROM composer:2 AS composer_builder
 
 # Stage 2: Application - PHP-FPM with Alpine Linux
-FROM php:8.3.8-fpm-alpine3.20
+FROM php:8.3-fpm-alpine3.22
 
 # Set working directory
 WORKDIR /var/www/html

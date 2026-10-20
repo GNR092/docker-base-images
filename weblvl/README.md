@@ -38,7 +38,7 @@ sed -e 's/__DOMAIN__/tudominio.com/g' \
 - Gzip + tipos MIME optimizados
 - `client_max_body_size 100M`
 - FastCGI buffers tuneados (600s timeouts)
-- Bloqueo de archivos ocultos y carpetas sensibles (`vendor`, `storage`, `bootstrap/cache`)
+- Bloqueo de archivos ocultos y carpetas sensibles (`vendor`, `bootstrap/cache`)
 - Headers HTTPS para reverse proxy (Traefik, Caddy, etc.)
 
 ---
@@ -147,7 +147,7 @@ services:
       - php-fpm
 
   php-fpm:
-    image: php:8.3-fpm-alpine
+    image: php:8.3-fpm-alpine3.22
     volumes:
       - ./zz-custom.conf:/usr/local/etc/php-fpm.d/zz-custom.conf:ro
       - ./opcache-custom.ini:/usr/local/etc/php/conf.d/opcache-custom.ini:ro
