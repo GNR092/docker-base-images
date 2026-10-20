@@ -1,7 +1,7 @@
-FROM ubuntu:24.10
+FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
-ENV GOSU_VERSION=1.7
+ENV GOSU_VERSION=1.17
 ARG NODE_VERSION=20
 
 # Configura locales
@@ -25,12 +25,12 @@ RUN set -x \
     && apt-get clean
 
 # Instala Node.js
-RUN curl -sL https://deb.nodesource.com/setup_$NODE_VERSION.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_$NODE_VERSION.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && node -v
 
 # Instala npm
-RUN curl -L https://www.npmjs.com/install.sh | sh \
+RUN curl -fsSL https://www.npmjs.com/install.sh | sh \
     && npm -v
 
 # Instala dependencias adicionales
@@ -42,7 +42,7 @@ RUN apt-get install -y --no-install-recommends \
 
 
 # Actualiza npm
-RUN npm install npm@latest -g
+RUN npm install npm@10 -g
 
 # Instala SteamCMD y librerías necesarias
 RUN apt-get update \
@@ -69,7 +69,7 @@ RUN groupadd \
 	--create-home \
 	--home /app \
 	--uid 1001 \
-	--gid 999 \
+	--gid docker \
 	--groups docker,users,staff \
 	--shell /bin/false \
 	docker && \
@@ -83,7 +83,11 @@ RUN mkdir -p /steamcmd/ /app/.steam/sdk32 /app/.steam/sdk64 \
 USER docker
 
 # Instala SteamCMD y verifica su funcionamiento
-RUN curl -s http://media.steampowered.com/installer/steamcmd_linux.tar.gz | tar -v -C /steamcmd -zx \
+ARG STEAMCMD_SHA256=c7e382f81d5a44036ebb21fd6aa77f68fb4ac0b6d6f4c209ef389b05eba0f9b8
+RUN curl -fsSL https://media.steampowered.com/installer/steamcmd_linux.tar.gz -o /tmp/steamcmd.tar.gz \
+    && echo "${STEAMCMD_SHA256}  /tmp/steamcmd.tar.gz" | sha256sum -c - \
+    && tar -v -C /steamcmd -xzf /tmp/steamcmd.tar.gz \
+    && rm /tmp/steamcmd.tar.gz \
     && chmod +x /steamcmd/steamcmd.sh \
     && set -x && /steamcmd/steamcmd.sh +login anonymous +quit \
     && ln -sf "/steamcmd/linux32/steamclient.so" "/steamcmd/steamservice.so" \

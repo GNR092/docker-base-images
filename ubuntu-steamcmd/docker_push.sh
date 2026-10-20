@@ -2,4 +2,4 @@
 
 ./docker_build.sh
 
-docker push gnr092/base:steamcmd-ubuntu-24.10
+docker push gnr092/base:steamcmd-ubuntu-24.04
