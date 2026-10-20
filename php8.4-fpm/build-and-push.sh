@@ -3,14 +3,14 @@
 # Build and Push Script for php8.4-fpm
 # =============================================================================
 # Usage: ./build-and-push.sh [version] [registry]
-# Example: ./build-and-push.sh 8.4-fpm-alpine3.20 gnr092
+# Example: ./build-and-push.sh 8.4-fpm-alpine3.22 gnr092
 # =============================================================================
 
 set -euo pipefail
 
 # Configuration
 IMAGE_NAME="base-php8.4-fpm"
-DEFAULT_VERSION="8.4-fpm-alpine3.20"
+DEFAULT_VERSION="8.4-fpm-alpine3.22"
 DEFAULT_REGISTRY="gnr092"
 DOCKERFILE="Dockerfile"
 BUILD_CONTEXT="."

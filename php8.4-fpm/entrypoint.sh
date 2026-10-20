@@ -91,12 +91,10 @@ mkdir -p /var/lib/php/sessions
 # Set ownership
 chown -R www-data:www-data /var/log/php-fpm
 chown -R www-data:www-data /var/lib/php/sessions
-chown -R www-data:www-data /var/www/html
 
 # Set permissions
 chmod 775 /var/log/php-fpm
 chmod 775 /var/lib/php/sessions
-chmod -R 775 /var/www/html
 
 # =============================================================================
 # OPcache Validation

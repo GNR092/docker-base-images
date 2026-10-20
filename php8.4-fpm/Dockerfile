@@ -3,7 +3,7 @@
 # =============================================================================
 # Stage 1: Builder - Install build dependencies and compile extensions
 # =============================================================================
-FROM php:8.4-fpm-alpine3.20 AS builder
+FROM php:8.4-fpm-alpine3.22 AS builder
 
 # Install build dependencies for PHP extensions
 RUN apk update --no-cache && \
@@ -84,7 +84,7 @@ RUN pecl install redis && \
 # =============================================================================
 # Stage 2: Runtime - Minimal production image
 # =============================================================================
-FROM php:8.4-fpm-alpine3.20 AS runtime
+FROM php:8.4-fpm-alpine3.22 AS runtime
 
 # Install only runtime dependencies
 RUN apk update --no-cache && \
@@ -129,7 +129,7 @@ COPY --from=builder /usr/local/lib/php/extensions/no-debug-non-zts-20240924/ /us
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
 # Copy Composer from official image
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # =============================================================================
 # Configuration Files
