@@ -1,4 +1,4 @@
-FROM php:8.3.8-fpm-alpine3.20
+FROM php:8.3-fpm-alpine3.22
 
 # 1. Dependencias del sistema (Se agregó freetype-dev)
 RUN apk update && apk add --no-cache \
@@ -34,24 +34,22 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     soap
 
 # 3. Composer
-COPY --from=composer/composer:latest-bin /composer /usr/bin/composer
+COPY --from=composer/composer:2-bin /composer /usr/bin/composer
 
 # 4. Gestión de Usuarios
-# Nota: Usar 'nobody' es válido, pero CI4 suele preferir un nombre de usuario dedicado
-# para evitar conflictos con procesos del sistema Alpine
 ARG PUID=1000
 ARG PGID=1000
 
-RUN deluser nobody || true \
-    && delgroup nobody || true \
-    && addgroup -g ${PGID} nobody \
-    && adduser -u ${PUID} -G nobody -s /bin/sh -D nobody
+RUN deluser www-data || true \
+    && delgroup www-data || true \
+    && addgroup -g ${PGID} www-data \
+    && adduser -u ${PUID} -G www-data -s /bin/sh -D www-data
 
 WORKDIR /var/www/html
 
 # 5. Configuración y Permisos
 # Importante: chown debe ser recursivo para las carpetas writable de CI4
-RUN chown -R nobody:nobody /var/www/html/ \
+RUN chown -R www-data:www-data /var/www/html/ \
     && chmod -R 775 /var/www/html/
 
 COPY zz-custom.conf /usr/local/etc/php-fpm.d/zz-custom.conf
@@ -62,7 +60,7 @@ RUN chmod +x /entrypoint.sh && \
     git config --global core.fileMode false && \
     git config --global --add safe.directory /var/www/html && \
     mkdir -p /var/log/nginx && \
-    chown nobody:nobody /var/log/nginx
+    chown www-data:www-data /var/log/nginx
 
 ENV APP_MODE=new
 EXPOSE 9000

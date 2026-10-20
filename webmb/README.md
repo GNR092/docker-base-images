@@ -66,7 +66,7 @@ php_admin_value[post_max_size] = 64M
 php_admin_value[max_execution_time] = 600
 php_admin_value[max_input_time] = 600
 
-php_flag[display_errors] = on
+php_flag[display_errors] = off
 php_admin_flag[log_errors] = on
 php_admin_value[error_log] = /proc/self/fd/2
 php_admin_flag[expose_php] = off
