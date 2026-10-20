@@ -7,11 +7,11 @@ Imágenes base Docker para entornos Alpine/Ubuntu, servidores SteamCMD y stacks 
 ## Estructura
 
 ```
-├── alpine/                  # Alpine 3.20 + gosu + utilidades
-├── alpine-3.20-gosu/        # Alpine 3.20 + gosu (mínima)
-├── alpine-steamcmd/         # Alpine 3.20 + SteamCMD (multi-stage)
-├── ubuntu-steamcmd/         # Ubuntu 24.10 + Node 20 + SteamCMD
-├── weblvl/                  # PHP 8.3-FPM para Laravel (MySQL/PostgreSQL)
+├── alpine/                  # Alpine 3.22 + gosu + utilidades
+├── alpine-3.20-gosu/        # Alpine 3.22 + gosu (mínima)
+├── alpine-steamcmd/         # Alpine 3.22 + SteamCMD (multi-stage)
+├── ubuntu-steamcmd/         # Ubuntu 24.04 + Node 20 + SteamCMD
+├── weblvl/                  # PHP 8.3-8.5 FPM para Laravel (MySQL/PostgreSQL)
 └── webmb/                   # PHP 8.3-FPM para CI4 (MySQL/PostgreSQL + GhostPDL)
 ```
 
@@ -25,7 +25,7 @@ Imagen base Alpine con gosu para ejecución no-root dinámica.
 
 | Atributo | Valor |
 |----------|-------|
-| Base | `alpine:3.20` |
+| Base | `alpine:3.22` |
 | Usuario | `gnr092` (UID/GID 1000) |
 | Entrypoint | `entrypoint.sh` con `PUID`, `PGID`, `CHOWN_DIRS`, `ENABLE_PASSWORDLESS_SUDO` |
 | Scripts | `build.sh`, `run.sh`, `push.sh` |
@@ -40,7 +40,7 @@ Imagen mínima con solo gosu, sin usuario personalizado ni entrypoint.
 
 | Atributo | Valor |
 |----------|-------|
-| Base | `alpine:3.20` |
+| Base | `alpine:3.22` |
 | Gosu | 1.17 |
 | Uso | Base para imágenes que necesitan gosu pero no utilidades extras |
 
@@ -54,7 +54,7 @@ Alpine con SteamCMD listo para servidores de juego.
 
 | Atributo | Valor |
 |----------|-------|
-| Base | `alpine:3.20` (multi-stage desde `cm2network/steamcmd`) |
+| Base | `alpine:3.22` (multi-stage desde `cm2network/steamcmd`) |
 | Usuario | `gnr092` (UID/GID 1000) |
 | SteamCMD | Instalado y verificado + `steamclient.so` en `/usr/lib` |
 | Entrypoint | Mismo que `alpine/` (`PUID`, `PGID`, `CHOWN_DIRS`) |
@@ -69,8 +69,8 @@ Ubuntu con SteamCMD, Node.js 20 y toolchain de desarrollo.
 
 | Atributo | Valor |
 |----------|-------|
-| Base | `ubuntu:24.10` |
-| Usuario | `docker` (UID 1001 / GID 999) |
+| Base | `ubuntu:24.04` |
+| Usuario | `docker` (UID 1001 / GID del grupo `docker`) |
 | Node.js | 20 LTS + npm |
 | SteamCMD | Instalado + symlinks para SDK32/SDK64 |
 | Entrypoint | Mismo patrón (`PUID`, `PGID`, `CHOWN_DIRS`) |
@@ -85,7 +85,7 @@ PHP-FPM para aplicaciones Laravel, con extensiones comunes y Redis.
 
 | Atributo | Valor |
 |----------|-------|
-| Base | `php:8.3.8-fpm-alpine3.20` (multi-stage con Composer) |
+| Base | `php:8.3-fpm-alpine3.22` (multi-stage con Composer) |
 | Extensiones | `pdo_mysql`, `mbstring`, `exif`, `pcntl`, `bcmath`, `gd`, `zip`, `intl`, `gmp`, `posix`, `opcache`, `redis` |
 | Entrypoint | `entrypoint.sh` con `PUID`/`PGID`, Composer, caches de Laravel |
 | Puertos | 9000 |
@@ -114,9 +114,9 @@ PHP-FPM para CodeIgniter 4, con extensiones MySQL/PostgreSQL y GhostPDL.
 
 | Atributo | Valor |
 |----------|-------|
-| Base | `php:8.3.8-fpm-alpine3.20` |
+| Base | `php:8.3-fpm-alpine3.22` |
 | Extensiones | `mysqli`, `pdo_mysql`, `mbstring`, `exif`, `pcntl`, `gd`, `opcache`, `zip`, `bcmath`, `intl`, `soap` |
-| Usuario | `nobody` (UID/GID configurable vía `PUID`/`PGID`) |
+| Usuario | `www-data` (UID 1000 en `Dockerfile`; 82 en variantes GhostPDL) |
 | Puertos | 9000 |
 
 **Variantes:**
