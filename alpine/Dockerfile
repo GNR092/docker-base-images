@@ -1,5 +1,5 @@
 # Imagen base de Alpine
-FROM alpine:3.20
+FROM alpine:3.22
 
 USER root
 
@@ -36,7 +36,6 @@ RUN set -eux; \
 
 # Actualizar paquetes del sistema e instalar dependencias principales
 RUN apk update && \
-	apk --no-cache upgrade && \
     apk --no-cache add \
 		bash \
 		busybox-suid \
@@ -44,6 +43,7 @@ RUN apk update && \
         curl \
         wget \
 		ca-certificates \
+        musl-locales \
         sudo && \
 	update-ca-certificates 2>/dev/null || true
 
@@ -56,7 +56,7 @@ RUN addgroup -S -g 1000 gnr092 && \
 
 # Establecer variables de entorno predeterminadas
 ENV LANGUAGE=en_US.UTF-8
-ENV LANG=en_US.utf8ls
+ENV LANG=en_US.UTF-8
 ENV TERM=xterm
 ENV TZ=Etc/UTC
 ENV PGID=1000
