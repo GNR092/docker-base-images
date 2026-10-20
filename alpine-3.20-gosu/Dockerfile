@@ -1,5 +1,5 @@
 # Imagen base de Alpine
-FROM alpine:3.20
+FROM alpine:3.22
 
 USER root
 
