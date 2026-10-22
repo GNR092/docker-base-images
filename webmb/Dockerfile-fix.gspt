@@ -1,66 +1,43 @@
-FROM php:8.3.36-fpm-alpine3.23
+FROM php:8.3.36-fpm-alpine3.23@sha256:256806177d2870815ec12a11b65fcfde622a6e801d624618b9fe1ce8d6ebb241 AS builder
 
 ARG GSPDL_VERSION=10.07.0
+ARG GSPDL_SHA512=0c511528b0ebda1ebaf026c256c407178aac6d0091a2cc177933d614d4a7804de5d26f1db4fd500de9f857cddfc630e01f4de97326c629f8529ad195f98744a4
 
-# 1. Dependencias del sistema
-RUN apk update && apk add --no-cache \
-    mysql-client \
-    git \
-    zip \
-    unzip \
-    oniguruma-dev \
+RUN apk add --no-cache --virtual .build-deps \
     autoconf \
     build-base \
-    imagemagick-dev \
-    libzip-dev \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    libwebp-dev \
-    libxml2-dev \
-    icu-dev \
-    freetype-dev
-
-# 2. Instalar GhostPDL (sin entorno grafico)
-RUN apk add --no-cache --virtual .gspdl-build-deps \
     curl \
     make \
+    perl \
     pkgconf \
     python3 \
-    perl \
-    zlib-dev \
-    jpeg-dev \
-    libpng-dev \
-    tiff-dev \
     freetype-dev \
-    lcms2-dev \
-    openjpeg-dev \
+    icu-dev \
     jbig2dec-dev \
+    jpeg-dev \
+    lcms2-dev \
+    libpng-dev \
+    libwebp-dev \
+    libxml2-dev \
+    libzip-dev \
+    oniguruma-dev \
+    openjpeg-dev \
+    postgresql-dev \
+    tiff-dev \
+    zlib-dev \
     && GSPDL_TAG="gs$(printf '%s' "$GSPDL_VERSION" | tr -d '.')" \
     && GSPDL_URL="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/${GSPDL_TAG}/ghostpdl-${GSPDL_VERSION}.tar.gz" \
     && echo "Downloading: ${GSPDL_URL}" \
     && curl -fL "${GSPDL_URL}" -o /tmp/ghostpdl.tar.gz \
+    && echo "${GSPDL_SHA512}  /tmp/ghostpdl.tar.gz" | sha512sum -c - \
     && mkdir -p /tmp/ghostpdl-src \
     && tar -xzf /tmp/ghostpdl.tar.gz -C /tmp/ghostpdl-src --strip-components=1 \
     && cd /tmp/ghostpdl-src \
     && CFLAGS="-DDO_NOT_USE_SPRINTF=sprintf -Wno-error=incompatible-pointer-types" ./configure --disable-gtk --without-x \
-    && make -j1 \
-    && make install \
-    && apk add --no-cache \
-    tiff \
-    lcms2 \
-    openjpeg \
-    jbig2dec \
-    zlib \
-    libjpeg-turbo \
-    libpng \
-    freetype \
-    && gs --version \
-    && cd / \
+    && make -j$(nproc) \
+    && make install DESTDIR=/rootfs \
     && rm -rf /tmp/ghostpdl.tar.gz /tmp/ghostpdl-src \
-    && apk del .gspdl-build-deps
-
-# 3. Configurar e Instalar extensiones de PHP
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
     mysqli \
     pdo_mysql \
@@ -72,16 +49,42 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     zip \
     bcmath \
     intl \
-    soap
+    soap \
+    pgsql \
+    pdo_pgsql
 
-# 4. Composer
+FROM php:8.3.36-fpm-alpine3.23@sha256:256806177d2870815ec12a11b65fcfde622a6e801d624618b9fe1ce8d6ebb241
+
+RUN apk add --no-cache \
+    mysql-client \
+    git \
+    zip \
+    unzip \
+    freetype \
+    icu-libs \
+    jbig2dec \
+    lcms2 \
+    libjpeg-turbo \
+    libpng \
+    libpq \
+    libstdc++ \
+    libwebp \
+    libzip \
+    oniguruma \
+    openjpeg \
+    tiff \
+    zlib
+
+COPY --from=builder /rootfs/ /
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 COPY --from=composer/composer:2-bin /composer /usr/bin/composer
 
-WORKDIR /var/www/html
+RUN gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=/tmp/smoke.pdf -c showpage -c quit \
+    && gs -q -dNOPAUSE -dBATCH -sDEVICE=png16m -sOutputFile=/tmp/smoke.png /tmp/smoke.pdf \
+    && rm -f /tmp/smoke.pdf /tmp/smoke.png
 
-# 5. Configuración y Permisos
-RUN chown -R www-data:www-data /var/www/html/ \
-    && chmod -R 775 /var/www/html/
+WORKDIR /var/www/html
 
 COPY zz-custom.conf /usr/local/etc/php-fpm.d/zz-custom.conf
 COPY opcache-custom.ini /usr/local/etc/php/conf.d/opcache-custom.ini
@@ -90,6 +93,9 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && \
     mkdir -p /var/log/nginx && \
     chown www-data:www-data /var/log/nginx
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
+    CMD nc -z 127.0.0.1 9000 || exit 1
 
 ENV APP_MODE=new
 EXPOSE 9000
