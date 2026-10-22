@@ -28,4 +28,4 @@ Thumbs.db
 # Memoria local del agente
 .memory/
 
-webmb/Docs/tests/
+*/Docs/test*/
