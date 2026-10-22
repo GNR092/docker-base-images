@@ -10,20 +10,31 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.detect.outputs.images }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: detect
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          all="alpine alpine-3.20-gosu alpine-steamcmd php8.4-fpm php8.4-fpm-xdebug ubuntu-steamcmd weblvl webmb"
+          changed=$(git diff --name-only "$BASE" HEAD | cut -d/ -f1 | sort -u)
+          images=$(for i in $all; do echo "$changed" | grep -qx "$i" && echo "$i"; done | jq -R . | jq -sc .)
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: changes
+    if: needs.changes.outputs.images != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        image:
-          - alpine
-          - alpine-3.20-gosu
-          - alpine-steamcmd
-          - php8.4-fpm
-          - php8.4-fpm-xdebug
-          - ubuntu-steamcmd
-          - weblvl
-          - webmb
+        image: ${{ fromJSON(needs.changes.outputs.images) }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
