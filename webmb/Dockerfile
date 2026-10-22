@@ -1,4 +1,4 @@
-FROM php:8.3-fpm-alpine3.22
+FROM php:8.3.36-fpm-alpine3.23
 
 # 1. Dependencias del sistema (Se agregó freetype-dev)
 RUN apk update && apk add --no-cache \
