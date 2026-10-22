@@ -22,7 +22,7 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          all="alpine alpine-3.20-gosu alpine-steamcmd php8.4-fpm php8.4-fpm-xdebug ubuntu-steamcmd weblvl webmb"
+          all="alpine alpine-3.20-gosu alpine-steamcmd php8.3-fpm php8.3-fpm-soap php8.4-fpm php8.4-fpm-xdebug php8.5-fpm ubuntu-steamcmd weblvl webmb"
           changed=$(git diff --name-only "$BASE" HEAD | cut -d/ -f1 | sort -u)
           images=$(for i in $all; do echo "$changed" | grep -qx "$i" && echo "$i"; done | jq -R . | jq -sc .)
           echo "images=$images" >> "$GITHUB_OUTPUT"
