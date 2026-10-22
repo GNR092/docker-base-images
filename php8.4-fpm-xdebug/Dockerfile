@@ -3,7 +3,7 @@
 # =============================================================================
 # Stage 1: Builder - Install build dependencies and compile extensions
 # =============================================================================
-FROM php:8.4-fpm-alpine3.22 AS builder
+FROM php:8.4.27-fpm-alpine3.23 AS builder
 
 # Install build dependencies for PHP extensions and Xdebug
 RUN apk update --no-cache && \
@@ -84,7 +84,7 @@ RUN pecl install redis && \
 # =============================================================================
 # Stage 2: Xdebug Builder - Compile Xdebug separately for cleaner layers
 # =============================================================================
-FROM php:8.4-fpm-alpine3.22 AS xdebug_builder
+FROM php:8.4.27-fpm-alpine3.23 AS xdebug_builder
 
 # Install build dependencies for Xdebug
 RUN apk update --no-cache && \
@@ -106,7 +106,7 @@ RUN pecl install xdebug-${XDEBUG_VERSION}
 # =============================================================================
 # Stage 3: Runtime - Minimal production image
 # =============================================================================
-FROM php:8.4-fpm-alpine3.22 AS runtime
+FROM php:8.4.27-fpm-alpine3.23 AS runtime
 
 # Install only runtime dependencies
 RUN apk update --no-cache && \
